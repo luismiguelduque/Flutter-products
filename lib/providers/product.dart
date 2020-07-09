@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
+import 'package:provider/provider.dart';
 
-class Product {
+class Product with ChangeNotifier {
 
   final String id;
   final String title;
@@ -17,5 +18,10 @@ class Product {
     @required this.imageUrl,
     this.isFavorite = false,
   });
+
+  void toggloFavoriteStatus(){
+    isFavorite = !isFavorite;
+    notifyListeners();
+  }
 
 }
