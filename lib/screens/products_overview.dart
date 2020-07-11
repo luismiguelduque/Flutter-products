@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 
 
+import 'package:provider/provider.dart';
+
 import '../widgets/products_grid.dart';
+import '../widgets/app_drawer.dart';
+import '../providers/cart.dart';
+import '../widgets/badge.dart';
+import './cart_detail.dart';
 
 enum FilterOptions {
   Faborites,
@@ -20,8 +26,6 @@ class _ProductsOverviewState extends State<ProductsOverview> {
 
   @override
   Widget build(BuildContext context) {
-
-
     return Scaffold(
       appBar: AppBar(
         title: Text("My shop"),
@@ -50,8 +54,22 @@ class _ProductsOverviewState extends State<ProductsOverview> {
               )
             ],
           ),
+          Consumer<Cart>(
+            builder: (_, cart, child) => Badge(
+              child: child, 
+              value: cart.itemCount.toString(),
+            ),
+            child: IconButton(
+              icon: Icon(Icons.shopping_cart),
+              onPressed: (){
+                Navigator.of(context).pushNamed(CartDetail.routeName);
+              },
+            ),
+          ),
+          
         ],
       ),
+      drawer: AppDrawer(),
       body: ProductsGrid(showFavorites),
     );
   }
