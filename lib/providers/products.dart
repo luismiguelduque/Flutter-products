@@ -1,12 +1,16 @@
 import 'package:flutter/cupertino.dart';
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
 
 import 'package:flutter/material.dart';
-
+import 'package:products_shop/models/http_exception.dart';
 import 'product.dart';
 
 class Products with ChangeNotifier {
 
   List<Product> _items = [
+    /*
     Product(
       id: 'p1',
       title: 'Red Shirt',
@@ -35,7 +39,9 @@ class Products with ChangeNotifier {
       price: 49.99,
       imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/Cast-Iron-Pan.jpg/1024px-Cast-Iron-Pan.jpg',
     ),
+    */
   ];
+  
 
   List<Product> get items {
     return [..._items];
@@ -49,17 +55,95 @@ class Products with ChangeNotifier {
     return _items.firstWhere((item) => item.id == id);
   }
 
-  void addProduct(Product product){
-    final newProduct = Product(
-      id: DateTime.now().toString(),
-      title: product.title,
-      price: product.price,
-      description: product.description,
-      imageUrl: product.imageUrl,
-    );
-    _items.add(newProduct);
-    //_items.insert(0, newProduct);
+  Future<void> fetchAndSetProducts() async {
+    const url = "https://products-shop-f2b06.firebaseio.com/products.json";
+    try{
+      final response = await http.get(url);
+      final extractedData = json.decode(response.body) as Map<String, dynamic>;
+      final List<Product> loadedProducts = [];
+      if(extractedData == null){
+        return;
+      }
+      extractedData.forEach((productId, productData) { 
+        loadedProducts.insert(0, Product(
+          id: productId,
+          title: productData["title"],
+          description: productData["description"],
+          imageUrl: productData["imageUrl"],
+          price: productData["price"],
+          isFavorite: productData["isFavorite"],
+        ));
+      });
+      _items = loadedProducts;
+      notifyListeners();
+    }catch(error){
+
+    }
+  }
+
+  Future<void> addProduct(Product product) async {
+    const url = "https://products-shop-f2b06.firebaseio.com/products.json";
+    try{
+      final response = await http.post(url, body: json.encode({
+          "title": product.title,
+          "price": product.price,
+          "description": product.description,
+          "imageUrl": product.imageUrl,
+          "isFavorite": product.isFavorite,
+        }),
+      );
+      final newProduct = Product(
+        id: json.decode(response.body)['name'],  
+        title: product.title,
+        price: product.price,
+        description: product.description,
+        imageUrl: product.imageUrl,
+      );
+      _items.add(newProduct);
+      //_items.insert(0, newProduct);
+      notifyListeners();
+    }catch(error){
+      print(error);
+      throw error;
+    }
+  }
+
+  Future<void> updateProduct(String id, Product product) async {
+    final productIndex = _items.indexWhere((p) => p.id == id);
+    if(productIndex >= 0){
+      final url = "https://products-shop-f2b06.firebaseio.com/products/$id.json";
+      try{
+        await http.patch(url, body: json.encode({
+          "title": product.title,
+          "price": product.price,
+          "description": product.description,
+          "imageUrl": product.imageUrl,
+          "isFavorite": product.isFavorite,
+        }));
+        _items[productIndex] = product;
+        notifyListeners();
+      }catch(error){
+        print(error);
+        throw error;
+      }
+    }else{
+      print("Error no id");
+    }
+  }
+
+  Future<void>  deleteProduct(String id) async {
+    final url = "https://products-shop-f2b06.firebaseio.com/products/$id.json";
+    final existingProductIndex = _items.indexWhere((product) => product.id == id);
+    var existingProduct = _items[existingProductIndex];
+    _items.removeAt(existingProductIndex);
     notifyListeners();
+    final response = await http.delete(url);
+    if(response.statusCode >= 400 ){
+      _items.insert(existingProductIndex, existingProduct);
+      notifyListeners();
+      throw HttpException("Could not delete product.");
+    }
+    existingProduct = null;
   }
 
 }

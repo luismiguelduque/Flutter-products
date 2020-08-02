@@ -26,12 +26,40 @@ class _EditProductState extends State<EditProduct> {
     price: 0, 
     description: "", 
     imageUrl: ""
-  ); 
+  );
+  var _isInit = true;
+  var _initValues = {
+    "title": "",
+    "price": "",
+    "description": "",
+    "imageUrl": ""
+  };
+  bool _isLoading = false;
 
   @override
   void initState() {
     _imageUrlFocusNode.addListener(_updateImageUrl);
     super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    if(_isInit){
+      final productId =  ModalRoute.of(context).settings.arguments as String;
+      if(productId != null){
+        _editedProduct = Provider.of<Products>(context, listen: false).findById(productId);
+        _initValues = {
+          "title": _editedProduct.title,
+          "price": _editedProduct.price.toString(),
+          "description": _editedProduct.description,
+          //"imageUrl": _editedProduct.imageUrl,
+          "imageUrl": '',
+        };
+        _imageUrlController.text = _editedProduct.imageUrl;
+      }
+    }
+    _isInit = false;
+    super.didChangeDependencies();
   }
 
   @override
@@ -55,13 +83,65 @@ class _EditProductState extends State<EditProduct> {
     }
   }
 
-  void _saveForm(){
+  Future<void> _saveForm() async {
     final isValid = _form.currentState.validate();
+    setState(() {
+      _isLoading = true;
+    });
     if(!isValid){
       return;
     }else{
       _form.currentState.save();
-      Provider.of<Products>(context, listen: false).addProduct(_editedProduct);
+      if(_editedProduct.id != null){
+        try{
+          await Provider.of<Products>(context, listen: false).updateProduct(_editedProduct.id, _editedProduct);
+        }catch(error){
+          await showDialog<Null>(
+            context: context,
+            builder: (ctx) =>AlertDialog(
+              title: Text("An error ocurred!"),
+              content: Text("Something went wrong"),
+              actions: [
+                FlatButton(
+                  onPressed: (){
+                    Navigator.of(ctx).pop();
+                  },
+                  child: Text("Okay"),
+                ),
+              ],
+            ),
+          );
+        }
+      }else{
+        try{
+          await Provider.of<Products>(context, listen: false).addProduct(_editedProduct);
+        }catch(error){
+          await showDialog<Null>(
+            context: context,
+            builder: (ctx) =>AlertDialog(
+              title: Text("An error ocurred!"),
+              content: Text("Something went wrong"),
+              actions: [
+                FlatButton(
+                  onPressed: (){
+                    Navigator.of(ctx).pop();
+                  },
+                  child: Text("Okay"),
+                ),
+              ],
+            ),
+          );
+        }
+        // finally{
+        //   setState(() {
+        //     _isLoading = false;
+        //   });
+        //   Navigator.of(context).pop();
+        // }
+      }
+      setState(() {
+        _isLoading = false;
+      });
       Navigator.of(context).pop();
     }
   }
@@ -78,13 +158,17 @@ class _EditProductState extends State<EditProduct> {
           ),
         ],
       ),
-      body: Padding(
+      body: _isLoading 
+        ? Center(
+          child: CircularProgressIndicator(),
+        ) : Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _form,
           child: ListView(
             children: [
               TextFormField(
+                initialValue: _initValues['title'],
                 decoration: InputDecoration(
                   labelText: "Title",
                 ),
@@ -101,15 +185,17 @@ class _EditProductState extends State<EditProduct> {
                 },
                 onSaved: (value){
                   _editedProduct = Product(
-                    id: null,
+                    id: _editedProduct.id,
                     title: value,
                     price: _editedProduct.price,
                     description: _editedProduct.description,
                     imageUrl: _editedProduct.imageUrl,
+                    isFavorite: _editedProduct.isFavorite
                   );
                 },
               ),
               TextFormField(
+                initialValue: _initValues['price'],
                 decoration: InputDecoration(
                   labelText: "Price",
                 ),
@@ -133,15 +219,17 @@ class _EditProductState extends State<EditProduct> {
                 },
                 onSaved: (value){
                   _editedProduct = Product(
-                    id: null,
+                    id: _editedProduct.id,
                     title: _editedProduct.title,
                     price: double.parse(value),
                     description: _editedProduct.description,
                     imageUrl: _editedProduct.imageUrl,
+                    isFavorite: _editedProduct.isFavorite
                   );
                 },
               ),
               TextFormField(
+                initialValue: _initValues['description'],
                 decoration: InputDecoration(
                   labelText: "Description",
                 ),
@@ -159,11 +247,12 @@ class _EditProductState extends State<EditProduct> {
                 },
                 onSaved: (value){
                   _editedProduct = Product(
-                    id: null,
+                    id: _editedProduct.id,
                     title: _editedProduct.title,
                     price: _editedProduct.price,
                     description: value,
                     imageUrl: _editedProduct.imageUrl,
+                    isFavorite: _editedProduct.isFavorite
                   );
                 },
               ),
@@ -210,11 +299,12 @@ class _EditProductState extends State<EditProduct> {
                       },
                       onSaved: (value){
                         _editedProduct = Product(
-                          id: null,
+                          id: _editedProduct.id,
                           title: _editedProduct.title,
                           price: _editedProduct.price,
                           description: _editedProduct.description,
                           imageUrl: value,
+                          isFavorite: _editedProduct.isFavorite
                         );
                       },
                     ),
