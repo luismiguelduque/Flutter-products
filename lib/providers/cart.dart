@@ -55,7 +55,6 @@ class Cart with ChangeNotifier {
         )
       );
     }
-    print("si llega");
     notifyListeners();
   }
 

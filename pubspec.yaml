@@ -30,6 +30,8 @@ dependencies:
   provider: ^4.3.0
   intl: ^0.16.1
   http: ^0.12.2
+  shared_preferences: ^0.5.8
+
 
 dev_dependencies:
   flutter_test:

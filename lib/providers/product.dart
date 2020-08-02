@@ -26,17 +26,15 @@ class Product with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> toggloFavoriteStatus() async {
+  Future<void> toggloFavoriteStatus(String token, String userId) async {
     final oldStatus = isFavorite;
     _setFavoriteValue(!isFavorite);
     notifyListeners();
-    final url = "https://products-shop-f2b06.firebaseio.com/products/$id.json";
+    final url = "https://products-shop-f2b06.firebaseio.com/userFavorites/$userId/$id.json?auth=$token";
     try{
-      final response = await http.patch(
-        url, 
-        body: json.encode({
-          "isFavorite": isFavorite,
-        })
+      final response = await http.put(
+        url,
+        body: json.encode(isFavorite)
       );
       if(response.statusCode >= 400){
         _setFavoriteValue(oldStatus);
